@@ -5,6 +5,7 @@ const pool = require('./config/db');
 const productRoutes = require('./routes/productRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 app.use(cors());
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/products', productRoutes);
 app.use('/customers', customerRoutes);
 app.use('/orders', orderRoutes);
+app.use('/auth', authRoutes);
 
 // Tes koneksi database
 app.get('/', async (req, res) => {

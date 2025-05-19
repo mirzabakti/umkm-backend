@@ -2,11 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Definisi rute
-router.get('/', productController.getAllProducts);    // GET semua produk
-router.post('/', productController.createProduct);    // POST tambah produk
-router.put('/:id', productController.updateProduct);  // PUT update produk
-router.delete('/:id', productController.deleteProduct); // DELETE hapus produk
+router.get('/', productController.getAllProducts);    // GET semua produk (public)
+router.post('/', authMiddleware.verifyToken, authMiddleware.isAdmin, productController.createProduct);    // POST tambah produk (admin/owner)
+router.put('/:id', authMiddleware.verifyToken, authMiddleware.isAdmin, productController.updateProduct);  // PUT update produk (admin/owner)
+router.delete('/:id', authMiddleware.verifyToken, authMiddleware.isAdmin, productController.deleteProduct); // DELETE hapus produk (admin/owner)
 
 module.exports = router;

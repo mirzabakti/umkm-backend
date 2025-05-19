@@ -15,10 +15,10 @@ exports.getAllCustomers = async (req, res) => {
 // Tambah pelanggan baru
 exports.createCustomer = async (req, res) => {
   try {
-    const { customer_name, address, phone_number, email } = req.body;
+    const { customer_name, address, phone_number, email, password } = req.body;
     const result = await pool.query(
-      'INSERT INTO Customers (customer_name, address, phone_number, email) VALUES ($1, $2, $3, $4) RETURNING *',
-      [customer_name, address, phone_number, email]
+      'INSERT INTO Customers (customer_name, address, phone_number, email, password) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [customer_name, address, phone_number, email, password]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -31,10 +31,10 @@ exports.createCustomer = async (req, res) => {
 exports.updateCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { customer_name, address, phone_number, email } = req.body;
+    const { customer_name, address, phone_number, email, password } = req.body;
     const result = await pool.query(
-      'UPDATE Customers SET customer_name=$1, address=$2, phone_number=$3, email=$4 WHERE customer_id=$5 RETURNING *',
-      [customer_name, address, phone_number, email, id]
+      'UPDATE Customers SET customer_name=$1, address=$2, phone_number=$3, email=$4, password=$5 WHERE customer_id=$6 RETURNING *',
+      [customer_name, address, phone_number, email, password, id]
     );
     res.json(result.rows[0]);
   } catch (err) {

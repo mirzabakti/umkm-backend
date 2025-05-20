@@ -5,8 +5,8 @@ exports.getAllOrders = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT o.order_id, c.customer_name, o.order_date
-      FROM Orders o
-      JOIN Customers c ON o.customer_id = c.customer_id
+      FROM orders o
+      JOIN customers c ON o.customer_id = c.customer_id
       ORDER BY o.order_id DESC
     `);
     res.json(result.rows);
@@ -26,7 +26,7 @@ exports.createOrder = async (req, res) => {
 
     // 1. Insert Orders
     const orderRes = await client.query(
-      'INSERT INTO Orders (customer_id) VALUES ($1) RETURNING order_id',
+      'INSERT INTO orders (customer_id) VALUES ($1) RETURNING order_id',
       [customer_id]
     );
     const order_id = orderRes.rows[0].order_id;
@@ -34,7 +34,7 @@ exports.createOrder = async (req, res) => {
     // 2. Insert Order_Details untuk setiap item
     for (let item of items) {
       await client.query(
-        'INSERT INTO Order_Details (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)',
+        'INSERT INTO order_details (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)',
         [order_id, item.product_id, item.quantity, item.price]
       );
     }
@@ -58,8 +58,8 @@ exports.getOrderDetail = async (req, res) => {
     // Ambil informasi utama pesanan
     const orderResult = await pool.query(`
       SELECT o.order_id, o.order_date, c.customer_name
-      FROM Orders o
-      JOIN Customers c ON o.customer_id = c.customer_id
+      FROM orders o
+      JOIN customers c ON o.customer_id = c.customer_id
       WHERE o.order_id = $1
     `, [id]);
 
@@ -71,8 +71,8 @@ exports.getOrderDetail = async (req, res) => {
     // Ambil detail item dari pesanan
     const itemsResult = await pool.query(`
       SELECT od.product_id, p.product_name, od.quantity, od.price
-      FROM Order_Details od
-      JOIN Products p ON od.product_id = p.product_id
+      FROM order_details od
+      JOIN products p ON od.product_id = p.product_id
       WHERE od.order_id = $1
     `, [id]);
 
@@ -82,6 +82,23 @@ exports.getOrderDetail = async (req, res) => {
       items: itemsResult.rows
     });
 
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Ambil semua order berdasarkan customer_id
+exports.getOrdersByCustomer = async (req, res) => {
+  try {
+    const { customer_id } = req.params;
+    const result = await pool.query(`
+      SELECT o.order_id, o.order_date
+      FROM orders o
+      WHERE o.customer_id = $1
+      ORDER BY o.order_date DESC
+    `, [customer_id]);
+    res.json(result.rows);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

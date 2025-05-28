@@ -13,7 +13,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
     // Cek email sudah terdaftar
-    const userCheck = await client.query('SELECT * FROM Users WHERE email = $1', [email]);
+    const userCheck = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userCheck.rows.length > 0) {
       return res.status(400).json({ message: 'Email already registered' });
     }
@@ -22,21 +22,27 @@ exports.register = async (req, res) => {
     await client.query('BEGIN');
     // Simpan user dengan role 'customer'
     const userResult = await client.query(
-      'INSERT INTO Users (name, email, password, roles, aktif) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      'INSERT INTO users (name, email, password, roles, aktif) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [name, email, hashedPassword, 'customer', 1]
     );
     const user = userResult.rows[0];
     // Simpan profil customer (alamat & phone_number bisa diupdate nanti)
-    await client.query(
-      'INSERT INTO Customers (customer_name, email, address, phone_number, user_id) VALUES ($1, $2, $3, $4, $5)',
-      [name, email, '', '', user.id]
-    );
+    try {
+      await client.query(
+        'INSERT INTO customers (customer_name, email, address, phone_number, user_id) VALUES ($1, $2, $3, $4, $5)',
+        [name, email, '', '', user.user_id]
+      );
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error('Gagal insert ke tabel customers:', err.message);
+      return res.status(500).json({ message: 'Register gagal pada tahap insert ke customers', error: err.message });
+    }
     await client.query('COMMIT');
     res.status(201).json({ message: 'Register success', user });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Register error:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
   } finally {
     client.release();
   }
@@ -50,7 +56,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Email and password required' });
     }
     // Cari user
-    const userRes = await pool.query('SELECT * FROM Users WHERE email = $1', [email]);
+    const userRes = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userRes.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -61,8 +67,8 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     // Generate JWT
-    const token = jwt.sign({ user_id: user.id, role: user.roles }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.roles } });
+    const token = jwt.sign({ user_id: user.user_id, role: user.roles }, JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token, user: { id: user.user_id, name: user.name, email: user.email, role: user.roles } });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });

@@ -1,10 +1,12 @@
 const pool = require('../config/db');
+const fs = require('fs');
+const path = require('path');
 
 // Menampilkan semua pesanan (tanpa detail)
 exports.getAllOrders = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT o.order_id, c.customer_name, o.order_date
+      SELECT o.order_id, c.customer_name, o.order_date, o.status, o.payment_proof
       FROM orders o
       JOIN customers c ON o.customer_id = c.customer_id
       ORDER BY o.order_id DESC
@@ -26,8 +28,8 @@ exports.createOrder = async (req, res) => {
 
     // 1. Insert Orders
     const orderRes = await client.query(
-      'INSERT INTO orders (customer_id) VALUES ($1) RETURNING order_id',
-      [customer_id]
+      'INSERT INTO orders (customer_id, status) VALUES ($1, $2) RETURNING order_id',
+      [customer_id, 'Menunggu Pembayaran']
     );
     const order_id = orderRes.rows[0].order_id;
 
@@ -57,7 +59,7 @@ exports.getOrderDetail = async (req, res) => {
 
     // Ambil informasi utama pesanan
     const orderResult = await pool.query(`
-      SELECT o.order_id, o.order_date, c.customer_name
+      SELECT o.order_id, o.order_date, c.customer_name, o.status
       FROM orders o
       JOIN customers c ON o.customer_id = c.customer_id
       WHERE o.order_id = $1
@@ -93,12 +95,41 @@ exports.getOrdersByCustomer = async (req, res) => {
   try {
     const { customer_id } = req.params;
     const result = await pool.query(`
-      SELECT o.order_id, o.order_date
+      SELECT o.order_id, o.order_date, o.status
       FROM orders o
       WHERE o.customer_id = $1
       ORDER BY o.order_date DESC
     `, [customer_id]);
     res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Update status order
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    await pool.query('UPDATE orders SET status = $1 WHERE order_id = $2', [status, id]);
+    res.json({ message: 'Status order berhasil diupdate' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// Upload bukti pembayaran
+exports.uploadPaymentProof = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const filePath = `/uploads/payment_proofs/${req.file.filename}`;
+    await pool.query('UPDATE orders SET payment_proof = $1 WHERE order_id = $2', [filePath, id]);
+    res.json({ message: 'Bukti pembayaran berhasil diupload', payment_proof: filePath });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

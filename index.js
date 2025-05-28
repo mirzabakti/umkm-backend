@@ -6,6 +6,7 @@ const productRoutes = require('./routes/productRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const authRoutes = require('./routes/authRoutes');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ app.use('/products', productRoutes);
 app.use('/customers', customerRoutes);
 app.use('/orders', orderRoutes);
 app.use('/auth', authRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Tes koneksi database
 app.get('/', async (req, res) => {

@@ -24,8 +24,15 @@ router.post('/register',
   authController.register
 );
 
-// Login (admin/customer)
-router.post('/login', authController.login);
+// Login (admin/customer) dengan validasi
+router.post('/login',
+  [
+    body('email').isEmail().withMessage('Format email tidak valid').normalizeEmail(),
+    body('password').notEmpty().withMessage('Password tidak boleh kosong'),
+  ],
+  handleValidationErrors,
+  authController.login
+);
 
 // router.get('/admin-only', authMiddleware.verifyToken, authMiddleware.isAdmin, authController.adminFunc);
 

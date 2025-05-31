@@ -55,20 +55,28 @@ exports.login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password required' });
     }
-    // Cari user
-    const userRes = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    // Cari user, lakukan JOIN dengan tabel customers jika user adalah customer
+    const userRes = await pool.query(
+      'SELECT u.user_id, u.name, u.email, u.password, u.roles, c.customer_id \n       FROM users u\n       LEFT JOIN customers c ON u.user_id = c.user_id\n       WHERE u.email = $1'
+      , [email]);
+
     if (userRes.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     const user = userRes.rows[0];
+
     // Cek password
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    // Generate JWT
+
+    // Generate JWT dengan user_id dan role
     const token = jwt.sign({ user_id: user.user_id, role: user.roles }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user.user_id, name: user.name, email: user.email, role: user.roles } });
+
+    // Kirim data user beserta customer_id (jika ada)
+    res.json({ token, user: { id: user.user_id, name: user.name, email: user.email, role: user.roles, customer_id: user.customer_id } });
+
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });

@@ -7,6 +7,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const authRoutes = require('./routes/authRoutes');
 const discountCategoryRoutes = require('./routes/discountCategoryRoutes');
+const discountRoutes = require('./routes/discountRoutes');
 const path = require('path');
 
 const app = express();
@@ -18,6 +19,7 @@ app.use('/customers', customerRoutes);
 app.use('/orders', orderRoutes);
 app.use('/auth', authRoutes);
 app.use('/discount-categories', discountCategoryRoutes);
+app.use('/discounts', discountRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Tes koneksi database
